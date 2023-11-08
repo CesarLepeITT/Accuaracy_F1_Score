@@ -10,9 +10,9 @@
 __global__ void accuracy_score(int* _true, int* y_pred, bool truE){
     int idY = threadIdx.y;
     int idX = threadIdx.x;
-    __shared__ int predS[32];
-
-
+    __shared__ int trueS[32];
+    trueS [threadIdx.x] = _true[threadIdx.x]; // cada thread block 1D contendra 32 hilos
+    
 }
 
 void fillingMatrices(int* matrix, int n, int m){
