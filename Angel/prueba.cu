@@ -21,7 +21,6 @@ void predictions(int* vector, int m){
 }
 
 int main(){
-    
     // predicciones y valores esperados 
     int* predictions_h, * predictions_d, * targValues_h, * targValues_d;
     bool ban;
@@ -29,7 +28,7 @@ int main(){
     int m = 6;
     size_t pitch;
     predictions_h = (int *)malloc(n * m * sizeof(int));
-
+    targValues_h = (int*)malloc(m * sizeof(int));
     fillingMatrices(predictions_h, n, m);
     for (int i = 0; i < n; i++){
         for (int e = 0; e < m; e++){
@@ -40,8 +39,8 @@ int main(){
     predictions(targValues_h, m);
     cudaMallocPitch((void**)&predictions_d, &pitch, m * sizeof(int), n);
     cudaMemcpy2D(predictions_d, pitch, predictions_h, m * sizeof(int), m * sizeof(int), n, cudaMemcpyHostToDevice);
-
-
+    cudaMalloc((void**)&targValues_d, m * sizeof(int));
+    cudaMemcpy(targValues_d, targValues_h, m * sizeof(int), cudaMemcpyHostToDevice);
 
 cudaDeviceReset();
 }
