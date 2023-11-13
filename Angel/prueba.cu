@@ -21,7 +21,6 @@ __global__ void accuracy_score(int* _true, int* y_pred, bool truE, int m){
                     for (int j = 0; j < 16; j++)
                         printf ("%i, ", trueS[j]);
                 }
-                
             }
             if (threadIdx.x < e) {
                 trueS [threadIdx.x] = _true[i * 16 + threadIdx.x];
