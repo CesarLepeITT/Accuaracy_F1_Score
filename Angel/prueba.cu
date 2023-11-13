@@ -9,34 +9,19 @@
 
 __global__ void accuracy_score(int* _true, int* y_pred, bool truE, int m){
     __shared__ int trueS[16];
-    if (m > 16)
-    {
         int i = m / 16; // calculamos las veces que habra que almacenar espacios de 16 en la memoria compartida
         int e = m - i * 16; // calculamos lo que sobra de del multiplo anterior para al final hacer solo almacenar esa cantidad
-        if (threadIdx.x < 16){
-            for (int k = 0; k < i; k++){
-                trueS [threadIdx.x] = _true[threadIdx.x + k * 16]; // los hilos necesarios copian los datos del vector de la data esperada (_true)
-                if (threadIdx.x == 0){
-                    printf("\n");
-                    for (int j = 0; j < 16; j++)
-                        printf ("%i, ", trueS[j]);
-                }
+        int mThreads = 16; // los threads necesarios en un inicio son 16
+        for (int guardado = 0; guardado < i; guardado++)
+        {
+            if (threadIdx.x < mThreads){
+                trueS [threadIdx.x] = _true[threadIdx.x + guardado * 16]; // los hilos necesarios copian los datos del vector de la data esperada (_true)
+                printf("[%i]\n",trueS[threadIdx.x]);
             }
-            if (threadIdx.x < e) {
-                trueS [threadIdx.x] = _true[i * 16 + threadIdx.x];
-                if (threadIdx.x == 0){
-                    printf("\n");
-                    for (int j = 0; j < e; j++)
-                        printf ("%i, ", trueS[j]);
-                }
-            }
+            if (guardado == i - 1 && e != 0) { i++; mThreads = e; e = 0;} // si existe sobra, hacemos que exista una iteracion mas y ademas cambiamos los threads necesarios y hacemos 'e = 0' para que no se cicle 
+            __syncthreads();
+                                                                  
         }
-            
-    }
-    
-    __syncthreads();
-
-
 }
 
 void fillingMatrices(int* matrix, int n, int m){
@@ -60,7 +45,7 @@ int main(){
 
     // Matriz con 5 individuos y 6 columnas de datos (el array de valores esperados es de 6 elementos)
     int n = 5;
-    int m = 33;
+    int m = 35;
 
 
 
