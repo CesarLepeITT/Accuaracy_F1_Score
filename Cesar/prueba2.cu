@@ -6,16 +6,14 @@
 // por ello, almacenaremos por bloque una porcion de los datos del array con los true values en la compartida, cada hilo (dentro del bloque)
 // podra acceder a ella para hacer sus calculos, comparando la data correspondiente del individuo que le fue asignado
 __global__ void accuracy_score(float *_true, float *y_pred, bool truE, int m, float *accuaracy)
-{   
-    unsigned int ix = threadIdx.x + blockIdx.x * blockDim.x; 
+{
     // Operaciones de comparacion
-    if (y_pred[m * threadIdx.y + threadIdx.x] == _true[ix])
+    if (y_pred[m * threadIdx.y + threadIdx.x] == _true[threadIdx.x])
     {
         atomicAdd(&accuaracy[threadIdx.y], 1);
-        __syncthreads();
-        printf("x: %i, y:%i score: %f \n", threadIdx.x, threadIdx.y, accuaracy[threadIdx.y]);
+        // printf("x: %i, y:%i score: %f \n", threadIdx.x, threadIdx.y, accuaracy[threadIdx.y]);
     }
-    if (threadIdx.x == m - 1)
+    if(threadIdx.x == m - 1)
         accuaracy[threadIdx.y] /= m;
 }
 
@@ -40,9 +38,6 @@ int main()
     float *predictions;
     float *targValues;
     float *accuaracy;
-    // float *dpredictions;
-    // float *dtargValues;
-    float *daccuaracy;
 
     // Matriz con 5 individuos y 6 columnas de datos (el array de valores esperados es de 6 elementos)
     int n = 1024;
@@ -53,29 +48,20 @@ int main()
     int sizeMatrix = nm * sizeof(float);
     int sizeVects = n * sizeof(float);
 
-    // host
-    accuaracy = (float *)malloc(sizeVects);
-    cudaMallocHost((void **)&predictions, sizeMatrix);
-    cudaMallocHost((void **)&targValues, sizeVects);
+    //
+    cudaMallocManaged((void **)&predictions, sizeMatrix);
+    cudaMallocManaged((void **)&targValues, sizeVects);
+    cudaMallocManaged((void **)&accuaracy, sizeVects);
 
-    // device
-    cudaMalloc((void **)&daccuaracy, sizeVects);
-
-    // Inicializar matrices host
+    // Inicializar matrices
     FillingMatrices(predictions, n, m);
     Predictions(targValues, m, 1);
     Predictions(accuaracy, n, 0);
 
-    // memcpy htd
-    cudaMemcpy(daccuaracy, accuaracy, sizeVects, cudaMemcpyHostToDevice);
-    // cudaMemcpy(dtargValues, targValues, sizeVects, cudaMemcpyHostToDevice);
-    // cudaMemcpy(dpredictions, predictions, sizeMatrix, cudaMemcpyHostToDevice);
-
-    dim3 block(m, n);
-    accuracy_score<<<1, block>>>(targValues, predictions, false, m, daccuaracy);
     cudaDeviceSynchronize();
-
-    cudaMemcpy(accuaracy, daccuaracy, sizeVects, cudaMemcpyDeviceToHost);
+    dim3 block(m, n);
+    accuracy_score<<<1, block>>>(targValues, predictions, false, m, accuaracy);
+    cudaDeviceSynchronize();
 
     printf("[");
     for (int i = 0; i < n; i++)
@@ -87,8 +73,5 @@ int main()
     }
     printf("]\n");
 
-    // cudaFree(accuaracy);
-    cudaFree(targValues);
-    cudaFree(predictions);
     cudaDeviceReset();
 }

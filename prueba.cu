@@ -4,34 +4,47 @@
 
 __device__ float sumatoria;
 
-__global__ void kernel(float *arr, float *accuaracy){
-    atomicAdd(&accuaracy[0], arr[threadIdx.x]);
-    __syncthreads();
-    printf("%f \n", accuaracy[threadIdx.x]);
+__global__ void kernel(float *arr, float *accuaracy)
+{
+    unsigned int ix = threadIdx.x + blockIdx.x * blockDim.x; 
+    atomicAdd(&accuaracy[0], 1);
+    printf("%f \n", accuaracy[0]);
 }
 
-int main(){
+int main()
+{
+
+    int N = 112;
     float *h_arr;
     float *d_arr;
 
     float *h_arr2;
     float *d_arr2;
 
-    h_arr = (float *)malloc(16 * sizeof(float));
-    h_arr2 = (float *)malloc(16 * sizeof(float));
+    h_arr = (float *)malloc(N * sizeof(float));
+    h_arr2 = (float *)malloc(N * sizeof(float));
 
-    for (int i = 0; i < 16; i++)
+    for (int i = 0; i < N; i++)
     {
         h_arr[i] = 1;
         h_arr2[i] = 0;
     }
-    
-    cudaMalloc((void**)&d_arr, 16 * sizeof(float));
-    cudaMalloc((void**)&d_arr2, 16 * sizeof(float));
-    cudaMemcpy(d_arr2, h_arr2, 16 * sizeof(float), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_arr, h_arr, 16 * sizeof(float), cudaMemcpyHostToDevice);
 
-    kernel<<<1,16>>>(d_arr, d_arr2);
+    cudaMalloc((void **)&d_arr, N * sizeof(float));
+    cudaMalloc((void **)&d_arr2, N * sizeof(float));
+    cudaMemcpy(d_arr2, h_arr2, N * sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_arr, h_arr, N * sizeof(float), cudaMemcpyHostToDevice);
+
+    // Kernell call
+    int minGridSize, blockSize;
+    cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, kernel, 0, 1024);
+
+    kernel<<<minGridSize, blockSize>>>(d_arr, d_arr2);
     cudaDeviceSynchronize();
+
+    cudaMemcpy(h_arr2, d_arr2, N * sizeof(float), cudaMemcpyDeviceToHost);
+
+    printf("Final : %f", h_arr2[0]);
+
     cudaDeviceReset();
 }
