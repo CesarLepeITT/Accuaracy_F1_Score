@@ -6,8 +6,7 @@ __device__ float sumatoria;
 
 __global__ void kernel(float *arr, float *accuaracy)
 {
-    unsigned int ix = threadIdx.x + blockIdx.x * blockDim.x; 
-    atomicAdd(&accuaracy[0], 1);
+    atomicAdd(&accuaracy[0], 1/2);
     printf("%f \n", accuaracy[0]);
 }
 
@@ -35,11 +34,7 @@ int main()
     cudaMemcpy(d_arr2, h_arr2, N * sizeof(float), cudaMemcpyHostToDevice);
     cudaMemcpy(d_arr, h_arr, N * sizeof(float), cudaMemcpyHostToDevice);
 
-    // Kernell call
-    int minGridSize, blockSize;
-    cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, kernel, 0, 1024);
-
-    kernel<<<minGridSize, blockSize>>>(d_arr, d_arr2);
+    kernel<<<1, 112>>>(d_arr, d_arr2);
     cudaDeviceSynchronize();
 
     cudaMemcpy(h_arr2, d_arr2, N * sizeof(float), cudaMemcpyDeviceToHost);
