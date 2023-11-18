@@ -5,7 +5,7 @@
 //TODO: Si solo se manda y_true y y_pred
 __global__ void AccuaracyScore(float*, float*); 
 //TODO: Si solo se manda y_true y y_pred y normalize (pro defecto es TRUE)
-__global__ void AccuaracyScore(float*, float*, bool);
+__global__ void AccuaracyScore(float*, float*);
 //TODO: Si solo se manda y_true y y_pred, normalize (pro defecto es TRUE) y sample weight (array)
 __global__ void AccuaracyScore(float*, float*, bool, float*);
 //TODO: Si solo se manda y_true y y_pred y sample weight
@@ -31,7 +31,6 @@ void ClassificationReport(float*, float* /*, TargetNames*/ );
 
 int main()
 {
-
 }
 
 __global__ void AccuaracyScore(float *yTrue, float *yPred)
