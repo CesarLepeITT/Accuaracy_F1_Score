@@ -5,7 +5,8 @@
 
 __global__ void RMSE(float* yhat, float* y, int n, float* sum){
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx < n) atomicAdd(sum, pow(yhat[idx] - y[idx], 2));
+    if (idx < n) 
+        atomicAdd(sum, pow(yhat[idx] - y[idx], 2));
     if (idx == 0){
         *sum = sqrt(*sum / n);
         printf("RMSE: %f", *sum);

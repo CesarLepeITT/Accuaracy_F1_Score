@@ -8,21 +8,22 @@
 __device__ float sumatoria;
 __global__ void accuracy_score(float *_true, float *y_pred, bool truE, int nx, int ny, float *accuaracy)
 {
-    unsigned int ix = threadIdx.x + blockIdx.x * blockDim.x; //0 a 15
+    unsigned int ix = threadIdx.x + blockIdx.x * blockDim.x; // 0 a 15
     unsigned int iy = threadIdx.y + blockIdx.y * blockDim.y; // o 1 15
-    unsigned int idx = iy * nx + ix; //Matriz
-    unsigned int posx = idx - (iy*nx);
-    //printf("ix: %i, iy:%i score: %i, idx%i \n", ix, iy, posx, idx);
-    // Operaciones de comparacion
+    unsigned int idx = iy * nx + ix;                         // Matriz
+    unsigned int posx = idx - (iy * nx);
+    // printf("ix: %i, iy:%i score: %i, idx%i \n", ix, iy, posx, idx);
+    //  Operaciones de comparacion
     if (y_pred[idx] == _true[posx] && idx < nx * ny) // Corregir nx * nx a nx * ny
-    {   
-        float sum = 1/nx;
+    {
+        float sum = 1 / nx;
         atomicAdd(&accuaracy[iy], 1);
-        //printf("ix: %i, iy:%i posx: %i, idx%i, score: %f \n", ix, iy, posx, idx, accuaracy[iy]);
+        // printf("ix: %i, iy:%i posx: %i, idx%i, score: %f \n", ix, iy, posx, idx, accuaracy[iy]);
     }
-    if (ix == nx - 1 and idx < nx * ny){
-       accuaracy[iy] /= nx;
-       // printf("real score %f\n",accuaracy[threadIdx.y]);
+    if (ix == nx - 1 and idx < nx * ny)
+    {
+        accuaracy[iy] /= nx;
+        // printf("real score %f\n",accuaracy[iy]);
     }
     __syncthreads();
 }
@@ -53,8 +54,8 @@ int main()
     float *daccuaracy;
 
     // Matriz con 5 individuos y 6 columnas de datos (el array de valores esperados es de 6 elementos)
-    int ny = 128;
-    int nx = 128;
+    int ny = 1024;
+    int nx = 1024;
     int nm = ny * nx;
 
     // Sizes
@@ -102,7 +103,7 @@ int main()
     for (int i = 0; i < ny; i++)
     {
         if (i != ny - 1)
-           printf("%f, ", accuaracy[i]);
+            printf("%f, ", accuaracy[i]);
         else
             printf("%f", accuaracy[i]);
     }
