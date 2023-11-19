@@ -32,7 +32,7 @@ int main(){
     float* targetValues; float* mSemantica; float* accuracyScore;
     float* targetValues_d; float* mSemantica_d; float* accuracyScore_d;
     int n = 100;
-    int m = 11;
+    int m = 10;
     targetValues = (float*)malloc(m * sizeof(float));
     mSemantica = (float*)malloc(n * m * sizeof(float));
     accuracyScore = (float*)malloc(n * sizeof(float));
