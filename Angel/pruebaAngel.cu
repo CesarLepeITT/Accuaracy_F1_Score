@@ -20,11 +20,14 @@ __global__ void kernel(float* mSemantica, float* targetValues, float* accuracySc
 
 void Llenarvector(float* vector, int n, int m, int value){
     for (int i = 0; i < n * m; i++)
-        vector[i] = i;
+        vector[i] = 1;
 }
 void Llenarmatriz(float* vector, int n, int m){
-    for (int i = 0; i < m * n ; i++)
-        vector[i] = 1; 
+    for (int i = 0; i < m * n ; i++){
+        if (i % 2 == 0) vector[i] = 1; 
+        else vector[i] = i; 
+    }
+        
 }
 
 
@@ -57,7 +60,7 @@ void splitM(int y, int x, int& newY, int& newX, int& gridY,  int& gridX){
 int main(){
     float* targetValues; float* mSemantica; float* accuracyScore;
     float* targetValues_d; float* mSemantica_d; float* accuracyScore_d;
-    int n = 1024;
+    int n = 100;
     int m = 1024;
     targetValues = (float*)malloc(m * sizeof(float));
     mSemantica = (float*)malloc(n * m * sizeof(float));
@@ -90,7 +93,7 @@ int main(){
     
     for (int i = 0; i < n; i++)
     {
-        printf("Accuracy Score [%i]: %f\n", i, accuracyScore[i]);
+        printf("Accuracy Score [%i]: %f\n", i, accuracyScore[i] / m);
     }
     
 
