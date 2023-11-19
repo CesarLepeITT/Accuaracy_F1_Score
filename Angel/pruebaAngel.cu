@@ -95,8 +95,5 @@ int main(){
     {
         printf("Accuracy Score [%i]: %f\n", i, accuracyScore[i] / m);
     }
-    
-
-
     cudaDeviceReset();
 }
