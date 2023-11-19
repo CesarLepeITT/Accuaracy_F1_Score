@@ -6,22 +6,23 @@
 // por ello, almacenaremos por bloque una porcion de los datos del array con los true values en la compartida, cada hilo (dentro del bloque)
 // podra acceder a ella para hacer sus calculos, comparando la data correspondiente del individuo que le fue asignado
 __device__ float sumatoria;
-__global__ void accuracy_score(float *_true, float *y_pred, bool truE, int nx, float *accuaracy)
+__global__ void accuracy_score(float *_true, float *y_pred, bool truE, int nx, int ny, float *accuaracy)
 {
     unsigned int ix = threadIdx.x + blockIdx.x * blockDim.x; //0 a 15
     unsigned int iy = threadIdx.y + blockIdx.y * blockDim.y; // o 1 15
     unsigned int idx = iy * nx + ix; //Matriz
-
+    unsigned int posx = idx - (iy*nx);
+    //printf("ix: %i, iy:%i score: %i, idx%i \n", ix, iy, posx, idx);
     // Operaciones de comparacion
-    if (y_pred[idx] == _true[ix])
+    if (y_pred[idx] == _true[posx] && idx < nx * ny) // Corregir nx * nx a nx * ny
     {   
         float sum = 1/nx;
-        atomicAdd(&accuaracy[iy], sum);
-        printf("ix: %i, iy:%i score: %f, idx%i \n", ix, iy, accuaracy[iy], idx);
+        atomicAdd(&accuaracy[iy], 1);
+        //printf("ix: %i, iy:%i posx: %i, idx%i, score: %f \n", ix, iy, posx, idx, accuaracy[iy]);
     }
-    if (ix == nx - 1){
-        accuaracy[iy] /= nx;
-       // printf("a  %f",accuaracy[threadIdx.y]);
+    if (ix == nx - 1 and idx < nx * ny){
+       accuaracy[iy] /= nx;
+       // printf("real score %f\n",accuaracy[threadIdx.y]);
     }
     __syncthreads();
 }
@@ -52,8 +53,8 @@ int main()
     float *daccuaracy;
 
     // Matriz con 5 individuos y 6 columnas de datos (el array de valores esperados es de 6 elementos)
-    int ny = 16;
-    int nx = 16;
+    int ny = 128;
+    int nx = 128;
     int nm = ny * nx;
 
     // Sizes
@@ -84,12 +85,12 @@ int main()
     cudaDeviceSynchronize();
 
     // Kernell call
-    int dimx = 16;
-    int dimy = 16;
+    int dimx = 32;
+    int dimy = 32;
 
     dim3 block(dimx, dimy);
     dim3 grid((nx + block.x - 1) / block.x, (ny + block.y - 1) / block.y);
-    accuracy_score<<<grid, block>>>(dtargValues, dpredictions, false, nx, daccuaracy);
+    accuracy_score<<<grid, block>>>(dtargValues, dpredictions, false, nx, ny, daccuaracy);
     cudaDeviceSynchronize();
 
     cudaMemcpy(accuaracy, daccuaracy, sizeAccuracy, cudaMemcpyDeviceToHost);
@@ -97,15 +98,15 @@ int main()
     cudaMemcpy(predictions, dpredictions, sizePredictions, cudaMemcpyDeviceToHost);
     cudaDeviceSynchronize();
 
-    //printf("[");
-    //for (int i = 0; i < ny; i++)
-    //{
-    //    if (i != ny - 1)
-    //        printf("%f, ", accuaracy[i]);
-    //    else
-    //        printf("%f", accuaracy[i]);
-    //}
-    //printf("]\n");
+    printf("[");
+    for (int i = 0; i < ny; i++)
+    {
+        if (i != ny - 1)
+           printf("%f, ", accuaracy[i]);
+        else
+            printf("%f", accuaracy[i]);
+    }
+    printf("]\n");
 
     cudaDeviceReset();
 }
