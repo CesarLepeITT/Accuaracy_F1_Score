@@ -8,5 +8,4 @@ y_pred = [1, 0, 1, 1, 0, 0, 1, 1, 1, 0]  # Ejemplo de predicciones
 
 # Calcular el accuracy
 accuracy = accuracy_score(y_true, y_pred)
-
 print(f'Accuracy: {accuracy:.4f}')

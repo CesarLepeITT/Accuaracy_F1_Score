@@ -1,6 +1,11 @@
 #include <cuda.h>
 #include <stdlib.h>
 #include <stdio.h>
+//TODO: Documentar el codigo
+//TODO: Probar un problema real con el codigo
+//TODO: Probar beneficios de usar pinned memory
+//TODO: Probar beneficios de usar managed memory
+//TODO: Optimizar rendimiento general
 
 __global__ void accuracy_score(float *_true, float *y_pred, int nx, int ny, float *accuaracy)
 {
@@ -14,47 +19,23 @@ __global__ void accuracy_score(float *_true, float *y_pred, int nx, int ny, floa
         float sum = 1 / nx;
         atomicAdd(&accuaracy[iy], 1 / (float)nx);
     }
-    __syncthreads();
 }
 
 void FillingMatrices(float *matrix, int n, int m)
 {
-    // for (int i = 0; i < n; i++)
-    //     for (int e = 0; e < m; e++)
-    //         matrix[i * m + e] = 1;
-    matrix[0] = 1;
-    matrix[0] = 1;
-    matrix[1] = 0;
-    matrix[2] = 1;
-    matrix[3] = 1;
-    matrix[4] = 0;
-    matrix[5] = 0;
-    matrix[6] = 1;
-    matrix[7] = 1;
-    matrix[8] = 1;
-    matrix[9] = 0;
+    for (int i = 0; i < n; i++)
+        for (int e = 0; e < m; e++)
+            matrix[i * m + e] = 1;
 }
-
 void Predictions(float *vector, int m, float num)
 {
-    //for (int i = 0; i < m; i++)
-    //{
-    //    if (i % 2 == 0)
-     //       vector[i] = num;
-     //   else
-    //        vector[i] = 5;
-    //}
-
-    vector[0] = 1;
-    vector[1] = 0;
-    vector[2] = 1;
-    vector[3] = 1;
-    vector[4] = 0;
-    vector[5] = 1;
-    vector[6] = 0;
-    vector[7] = 1;
-    vector[8] = 1;
-    vector[9] = 0;
+    for (int i = 0; i < m; i++)
+    {
+        if (i % 2 == 0)
+            vector[i] = num;
+        else
+            vector[i] = 5;
+    }
 }
 void VectorVacio(float *vector, int m, float num)
 {
@@ -63,19 +44,26 @@ void VectorVacio(float *vector, int m, float num)
         vector[i] = num;
     }
 }
-
+void PrintVect(float *vect, int ny){
+        printf("[");
+    for (int i = 0; i < ny; i++)
+    {
+        if (i != ny - 1)
+            printf("%f, ", vect[i]);
+        else
+            printf("%f", vect[i]);
+    }
+    printf("]\n");
+}
 int main()
 {
-    float *predictions;
-    float *targValues;
-    float *accuaracy;
-    float *dpredictions;
-    float *dtargValues;
-    float *daccuaracy;
+    // Set up dimensions
+    int ny = 2048; 
+    int nx = 2048; 
+    int nm = ny * nx; 
 
-    int ny = 1;
-    int nx = 10;
-    int nm = ny * nx;
+    float *predictions, *targValues, *accuaracy;
+    float *dpredictions, *dtargValues, *daccuaracy;
 
     int sizePredictions = nm * sizeof(float);
     int sizeTargetValues = nx * sizeof(float);
@@ -92,12 +80,10 @@ int main()
     FillingMatrices(predictions, ny, nx);
     Predictions(targValues, nx, 1);
     VectorVacio(accuaracy, 1, 0);
-    cudaDeviceSynchronize();
 
     cudaMemcpy(daccuaracy, accuaracy, sizeAccuracy, cudaMemcpyHostToDevice);
     cudaMemcpy(dtargValues, targValues, sizeTargetValues, cudaMemcpyHostToDevice);
     cudaMemcpy(dpredictions, predictions, sizePredictions, cudaMemcpyHostToDevice);
-    cudaDeviceSynchronize();
 
     int dimx = 32;
     int dimy = 32;
@@ -108,19 +94,8 @@ int main()
     cudaDeviceSynchronize();
 
     cudaMemcpy(accuaracy, daccuaracy, sizeAccuracy, cudaMemcpyDeviceToHost);
-    cudaMemcpy(targValues, dtargValues, sizeTargetValues, cudaMemcpyDeviceToHost);
-    cudaMemcpy(predictions, dpredictions, sizePredictions, cudaMemcpyDeviceToHost);
-    cudaDeviceSynchronize();
 
-    printf("[");
-    for (int i = 0; i < ny; i++)
-    {
-        if (i != ny - 1)
-            printf("%f, ", accuaracy[i]);
-        else
-            printf("%f", accuaracy[i]);
-    }
-    printf("]\n");
+    //PrintVect(accuaracy, ny);
 
     cudaDeviceReset();
 }
