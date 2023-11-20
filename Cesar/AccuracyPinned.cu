@@ -10,7 +10,7 @@
 //----------
 // float *y_pred: Matriz de ny x nx dimensiones que representa las predicciones
 // realizada por ny individuos con nx parametros.
-// float *y_true: Array de nx elementos que representa los valores esperados de las 
+// float *y_true: Array de nx elementos que representa los valores esperados de las
 // predicciones realizadas por los individuos
 // float *accuracy: Array de ny elementos que representa el accuracy de ny individuos
 // int nx: nx elementos
@@ -21,11 +21,14 @@ __global__ void f1_score(float *y_true, float *y_pred, float *accuaracy, int nx,
     unsigned int iy = threadIdx.y + blockIdx.y * blockDim.y;
     unsigned int tid = iy * nx + ix;
     unsigned int posx = tid - (iy * nx);
-
-    if (y_pred[tid] == y_true[posx] && tid < nx * ny)
+    if (tid < nx * ny && ix < nx && iy < ny)
     {
-        float sum = 1 / (float)nx;
-        atomicAdd(&accuaracy[iy], sum);
+        printf("ix%i iy%i tid %i\n", ix, iy, tid);
+        if (y_pred[tid] == y_true[posx])
+        {
+            float sum = 1 / (float)nx;
+            atomicAdd(&accuaracy[iy], sum);
+        }
     }
 }
 
@@ -42,7 +45,7 @@ void Predictions(float *vector, int m, float num)
         if (i % 2 == 0)
             vector[i] = num;
         else
-            vector[i] = 5;
+            vector[i] = 0;
     }
 }
 void VectorVacio(float *vector, int m, float num)
@@ -68,8 +71,8 @@ void PrintVect(float *vect, int ny)
 int main()
 {
     // Set up dimensions
-    int ny = 2048;
-    int nx = 2048;
+    int ny = 2;
+    int nx = 2;
     int nm = ny * nx;
 
     // Memory size
@@ -91,7 +94,7 @@ int main()
     // Host memory initialization
     FillingMatrices(predictions, ny, nx);
     Predictions(targetValues, nx, 1);
-    VectorVacio(h_accuracy, 1, 0);
+    VectorVacio(h_accuracy, ny, 0);
 
     // Memory transfer host to device
     cudaMemcpy(d_accuracy, h_accuracy, nBytesAccuracy, cudaMemcpyHostToDevice);
@@ -109,7 +112,7 @@ int main()
     // Memory transfer device to host
     cudaMemcpy(h_accuracy, d_accuracy, nBytesAccuracy, cudaMemcpyDeviceToHost);
 
-   // PrintVect(h_accuracy, ny);
+    PrintVect(h_accuracy, ny);
 
     // Reset device
     cudaDeviceReset();

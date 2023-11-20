@@ -2,26 +2,27 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-__global__ void f1_score(float *y_true, float *y_pred, float *f1_score, int nx, int ny, unsigned int *aux)
+__global__ void F1_Score(float *y_true, float *y_pred, float *f1_score, int nx, int ny, unsigned int *aux)
 {
     unsigned int ix = threadIdx.x + blockIdx.x * blockDim.x;
     unsigned int iy = threadIdx.y + blockIdx.y * blockDim.y;
     unsigned int tid = iy * nx + ix;
-    printf("ix%i iy%i tid %i\n", ix, iy, tid);
-    if (tid < nx * ny)
+
+    unsigned int cesar = iy * 2;
+    unsigned int segunda = cesar + 1;
+    unsigned int tercera = cesar + 2;
+    if (tid < nx * ny && ix < nx && iy < ny)
     {
-        unsigned int cesar = 0;//iy * 2;
-        unsigned int segunda = cesar + 1;
-        unsigned int tercera = cesar + 2;
-        if (y_pred[tid] == 1 && y_true[ix] == 1) // TP
+        // printf("ix%i iy%i tid %i cesar %i, segunda %i, tercera %i\n", ix, iy, tid, cesar, segunda, tercera);
+        if (y_pred[tid] == 1 && y_true[ix] == 1) // TP A
         {
             atomicAdd(&aux[cesar], 1);
         }
-        if (y_pred[tid] == 1 && y_true[ix] == 0) // FP
+        if (y_pred[tid] == 0 && y_true[ix] == 1) // FN B
         {
             atomicAdd(&aux[segunda], 1);
         }
-        if (y_pred[tid] == 0 && y_true[ix] == 1) // FN
+        if (y_pred[tid] == 1 && y_true[ix] == 0) // FP C
         {
             atomicAdd(&aux[tercera], 1);
         }
@@ -30,15 +31,15 @@ __global__ void f1_score(float *y_true, float *y_pred, float *f1_score, int nx, 
             unsigned int a = aux[cesar];
             unsigned int b = aux[segunda];
             unsigned int c = aux[tercera];
-            unsigned int x = (a + b) * (a + c);
-            if(x == 0) 
-                x = 1;
-            float r = 2 * a / x;
-            f1_score[iy] = r;
+            unsigned int x = (a + 0.5 * (b + c));
+            if (x == 0)
+                f1_score[iy] = -1;
+            else
+                f1_score[iy] = a / (a + 0.5 * (b + c));
         }
     }
 }
-void FillingMatrices(float *matrix, float num,int n, int m)
+void FillingMatrices(float *matrix, float num, int n, int m)
 {
     for (int i = 0; i < n; i++)
         for (int j = 0; j < m; j++)
@@ -83,8 +84,8 @@ void PrintVect(float *vect, int ny)
 int main()
 {
     // Set up dimensions
-    int ny = 32;
-    int nx = 2;
+    int ny = 1;
+    int nx = 8;
     int nm = ny * nx;
 
     // Memory size
@@ -108,15 +109,32 @@ int main()
     cudaMalloc((void **)&d_aux, nBytesAux);
 
     // Host memory initialization
-    FillingMatrices(predictions, 1, ny, nx);
+    // y_true = [1, 0, 1, 1, 0, 1, 0, 1]
+    // y_pred = [1, 0, 1, 0, 1, 1, 0, 1]
+    predictions[0] = 1;
+    predictions[1] = 1;
+    predictions[2] = 1;
+    predictions[3] = 1;
+    predictions[4] = 1;
+    predictions[5] = 1;
+    predictions[6] = 1;
+    predictions[7] = 1;
+    // FillingMatrices(predictions, 1, ny, nx);
     FillingMatrices(h_aux, 0, ny, 3);
-    Predictions(targetValues, nx, 1);
+    // Predictions(targetValues, nx, 1);
+    targetValues[0] = 1;
+    targetValues[1] = 0;
+    targetValues[2] = 1;
+    targetValues[3] = 0;
+    targetValues[4] = 1;
+    targetValues[5] = 1;
+    targetValues[6] = 0;
+    targetValues[7] = 1;
     VectorVacio(h_accuracy, nx, 0);
 
     // Memory transfer host to device
     cudaMemcpy(d_accuracy, h_accuracy, nBytesAccuracy, cudaMemcpyHostToDevice);
     cudaMemcpy(d_aux, h_aux, nBytesAux, cudaMemcpyHostToDevice);
-
 
     // Kernell call
     int dimx = 32;
@@ -125,13 +143,13 @@ int main()
     dim3 block(dimx, dimy);
     dim3 grid((nx + block.x - 1) / block.x, (ny + block.y - 1) / block.y);
 
-    f1_score<<<grid, block>>>(targetValues, predictions, d_accuracy, nx, ny, d_aux);
+    F1_Score<<<grid, block>>>(targetValues, predictions, d_accuracy, nx, ny, d_aux);
     cudaDeviceSynchronize();
 
     // Memory transfer device to host
     cudaMemcpy(h_accuracy, d_accuracy, nBytesAccuracy, cudaMemcpyDeviceToHost);
 
-    // PrintVect(h_accuracy, ny);
+    PrintVect(h_accuracy, ny);
 
     // Reset device
     cudaDeviceReset();
