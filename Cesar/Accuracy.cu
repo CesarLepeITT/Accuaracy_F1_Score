@@ -1,24 +1,25 @@
 #include <cuda.h>
 #include <stdlib.h>
 #include <stdio.h>
-//TODO: Documentar el codigo
-//TODO: Probar un problema real con el codigo
-//TODO: Probar beneficios de usar pinned memory
-//TODO: Probar beneficios de usar managed memory
-//TODO: Optimizar rendimiento general
+// TODO: Documentar el codigo
+// TODO: Probar un problema real con el codigo
+// TODO: Probar beneficios de usar pinned memory
+// TODO: Probar beneficios de usar managed memory
+// TODO: Optimizar rendimiento general
 
-__global__ void accuracy_score(float *_true, float *y_pred, int nx, int ny, float *accuaracy)
+__global__ void accuracy_score(float *y_true, float *y_pred, float *accuracy, int nx, int ny)
 {
-    unsigned int ix = threadIdx.x + blockIdx.x * blockDim.x; 
-    unsigned int iy = threadIdx.y + blockIdx.y * blockDim.y; 
-    unsigned int idx = iy * nx + ix;                         
-    unsigned int posx = idx - (iy * nx);
-
-    if (y_pred[idx] == _true[posx] && idx < nx * ny) 
-    {
-        float sum = 1 / nx;
-        atomicAdd(&accuaracy[iy], 1 / (float)nx);
-    }
+    unsigned int ix = threadIdx.x + blockIdx.x * blockDim.x;
+    unsigned int iy = threadIdx.y + blockIdx.y * blockDim.y;
+    unsigned int tid = iy * nx + ix;
+    unsigned int posx = tid - (iy * nx);
+    if (tid < nx * ny)
+        if (y_pred[tid] == y_true[posx] && tid < nx * ny)
+        {
+            float sum = 1 / (float)nx;
+            atomicAdd(&accuracy[iy], sum);
+            printf("%f\n", accuracy[iy]);
+        }
 }
 
 void FillingMatrices(float *matrix, int n, int m)
@@ -44,8 +45,9 @@ void VectorVacio(float *vector, int m, float num)
         vector[i] = num;
     }
 }
-void PrintVect(float *vect, int ny){
-        printf("[");
+void PrintVect(float *vect, int ny)
+{
+    printf("[");
     for (int i = 0; i < ny; i++)
     {
         if (i != ny - 1)
@@ -58,9 +60,9 @@ void PrintVect(float *vect, int ny){
 int main()
 {
     // Set up dimensions
-    int ny = 2048; 
-    int nx = 2048; 
-    int nm = ny * nx; 
+    int ny = 5;
+    int nx = 2;
+    int nm = ny * nx;
 
     float *predictions, *targValues, *accuaracy;
     float *dpredictions, *dtargValues, *daccuaracy;
@@ -90,12 +92,12 @@ int main()
 
     dim3 block(dimx, dimy);
     dim3 grid((nx + block.x - 1) / block.x, (ny + block.y - 1) / block.y);
-    accuracy_score<<<grid, block>>>(dtargValues, dpredictions, nx, ny, daccuaracy);
+    accuracy_score<<<grid, block>>>(dtargValues, dpredictions, daccuaracy, nx, ny);
     cudaDeviceSynchronize();
 
     cudaMemcpy(accuaracy, daccuaracy, sizeAccuracy, cudaMemcpyDeviceToHost);
 
-    //PrintVect(accuaracy, ny);
+    PrintVect(accuaracy, ny);
 
     cudaDeviceReset();
 }
