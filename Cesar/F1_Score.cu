@@ -7,30 +7,48 @@ __global__ void f1_score(float *y_true, float *y_pred, float *f1_score, int nx, 
     unsigned int ix = threadIdx.x + blockIdx.x * blockDim.x;
     unsigned int iy = threadIdx.y + blockIdx.y * blockDim.y;
     unsigned int tid = iy * nx + ix;
-    unsigned int posx = tid - (iy * nx);
-    
+    printf("ix%i iy%i tid %i\n", ix, iy, tid);
     if (tid < nx * ny)
     {
-        if (y_pred[tid] == 1 && y_true[posx] == 1) // TP
+        unsigned int cesar = 0;//iy * 2;
+        unsigned int segunda = cesar + 1;
+        unsigned int tercera = cesar + 2;
+        if (y_pred[tid] == 1 && y_true[ix] == 1) // TP
         {
-            //atomicAdd(&sumTP, 1);
+            atomicAdd(&aux[cesar], 1);
         }
-        if (y_pred[tid] == 1 && y_true[posx] == 0) // FP
+        if (y_pred[tid] == 1 && y_true[ix] == 0) // FP
         {
-            //atomicAdd(&sumFP, 1);
+            atomicAdd(&aux[segunda], 1);
         }
-        if (y_pred[tid] == 0 && y_true[posx] == 1) // FN
+        if (y_pred[tid] == 0 && y_true[ix] == 1) // FN
         {
-            //atomicAdd(&sumFN, 1);
+            atomicAdd(&aux[tercera], 1);
+        }
+        if (tid == nx - 1)
+        {
+            unsigned int a = aux[cesar];
+            unsigned int b = aux[segunda];
+            unsigned int c = aux[tercera];
+            unsigned int x = (a + b) * (a + c);
+            if(x == 0) 
+                x = 1;
+            float r = 2 * a / x;
+            f1_score[iy] = r;
         }
     }
 }
-
-void FillingMatrices(float *matrix, int n, int m)
+void FillingMatrices(float *matrix, float num,int n, int m)
+{
+    for (int i = 0; i < n; i++)
+        for (int j = 0; j < m; j++)
+            matrix[i * m + j] = num;
+}
+void FillingMatrices(int *matrix, int num, int n, int m)
 {
     for (int i = 0; i < n; i++)
         for (int e = 0; e < m; e++)
-            matrix[i * m + e] = 1;
+            matrix[i * m + e] = num;
 }
 void Predictions(float *vector, int m, float num)
 {
@@ -65,8 +83,8 @@ void PrintVect(float *vect, int ny)
 int main()
 {
     // Set up dimensions
-    int ny = 2048;
-    int nx = 2048;
+    int ny = 32;
+    int nx = 2;
     int nm = ny * nx;
 
     // Memory size
@@ -77,24 +95,28 @@ int main()
 
     // Host memory allocation
     float *predictions, *targetValues, *h_accuracy;
+    int *h_aux;
     h_accuracy = (float *)malloc(nBytesAccuracy);
+    h_aux = (int *)malloc(nBytesAux);
     cudaMallocHost((void **)&predictions, nBytesPredictions);
     cudaMallocHost((void **)&targetValues, nBytesTargetValues);
 
     // Device memory allocation
     float *d_accuracy;
-    unsigned int *d_aux;    
+    unsigned int *d_aux;
     cudaMalloc((void **)&d_accuracy, nBytesAccuracy);
-    cudaMalloc((void**)&d_aux, nBytesAux);
+    cudaMalloc((void **)&d_aux, nBytesAux);
 
     // Host memory initialization
-    FillingMatrices(predictions, ny, nx);
-    cudaMemset(d_aux, 0, nBytesAux);
+    FillingMatrices(predictions, 1, ny, nx);
+    FillingMatrices(h_aux, 0, ny, 3);
     Predictions(targetValues, nx, 1);
-    VectorVacio(h_accuracy, 1, 0);
+    VectorVacio(h_accuracy, nx, 0);
 
     // Memory transfer host to device
     cudaMemcpy(d_accuracy, h_accuracy, nBytesAccuracy, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_aux, h_aux, nBytesAux, cudaMemcpyHostToDevice);
+
 
     // Kernell call
     int dimx = 32;
