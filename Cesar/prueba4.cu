@@ -42,9 +42,20 @@ void Predictions(float *vector, int m, float num)
 {
     for (int i = 0; i < m; i++)
     {
-        vector[i] = num;
+        if (i % 2 == 0)
+            vector[i] = num;
+        else 
+            vector[i] = 5;
     }
 }
+void VectorVacio(float *vector, int m, float num)
+{
+    for (int i = 0; i < m; i++)
+    {
+            vector[i] = num;
+    }
+}
+
 
 int main()
 {
@@ -57,8 +68,8 @@ int main()
     float *daccuaracy;
 
     // Matriz con 5 individuos y 6 columnas de datos (el array de valores esperados es de 6 elementos)
-    int ny = 1024;
-    int nx = 1024;
+    int ny = 5;
+    int nx = 5;
     int nm = ny * nx;
 
     // Sizes
@@ -79,7 +90,7 @@ int main()
     // Inicializar matrices host
     FillingMatrices(predictions, ny, nx);
     Predictions(targValues, nx, 1);
-    Predictions(accuaracy, ny, 0);
+    VectorVacio(accuaracy, ny, 0);
     cudaDeviceSynchronize();
 
     // memcpy htd
