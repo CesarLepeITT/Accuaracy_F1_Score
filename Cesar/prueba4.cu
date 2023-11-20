@@ -12,19 +12,22 @@ __global__ void accuracy_score(float *_true, float *y_pred, bool truE, int nx, i
     unsigned int iy = threadIdx.y + blockIdx.y * blockDim.y; // o 1 15
     unsigned int idx = iy * nx + ix;                         // Matriz
     unsigned int posx = idx - (iy * nx);
+
     // printf("ix: %i, iy:%i score: %i, idx%i \n", ix, iy, posx, idx);
     //  Operaciones de comparacion
     if (y_pred[idx] == _true[posx] && idx < nx * ny) // Corregir nx * nx a nx * ny
     {
         float sum = 1 / nx;
-        atomicAdd(&accuaracy[iy], 1);
+        atomicAdd(&accuaracy[iy], 1 / (float)nx); 
+        //atomicAdd(reinterpret_cast<int*>(&accuaracy[iy]), __float_as_int(1 / nx)); 
+        //accuaracy[iy] /= nx;      
         // printf("ix: %i, iy:%i posx: %i, idx%i, score: %f \n", ix, iy, posx, idx, accuaracy[iy]);
     }
-    if (ix == nx - 1 and idx < nx * ny)
-    {
-        accuaracy[iy] /= nx;
-        // printf("real score %f\n",accuaracy[iy]);
-    }
+   // if (posx == nx - 1)
+   // {
+    //    accuaracy[iy] /= nx;
+   //     //printf("real score %f\n",accuaracy[iy]);
+    //}
     __syncthreads();
 }
 
