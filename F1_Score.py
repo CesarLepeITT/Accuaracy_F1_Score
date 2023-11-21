@@ -6,7 +6,7 @@ def rellenar_matriz(ny, nx, valor):
     return matriz
 
 def rellenar_matriz_rand(ny, nx):
-    matriz = np.random.randint(2, size=(ny, nx))
+    matriz = np.random.randint(2, size=(ny, nx), dtype= float)
     return matriz
 
 def rellenar_vector(nx, valor):
@@ -14,7 +14,7 @@ def rellenar_vector(nx, valor):
     return vector
 
 def rellenar_vector_rand(nx):
-    vector = np.random.randint(2, size=nx)
+    vector = np.random.randint(2, size=nx, dtype= float)
     return vector
 
 def calcular_f1_score(y_pred, y_true):
