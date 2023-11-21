@@ -2,12 +2,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-//TODO: Probar codigo con diferentes escenarios 
-//TODO: Desarrollar mejor vesion en py del f1
-//TODO: Limpiar codigo
-//TODO: Optimizar el codigo
+// TODO: Probar codigo con diferentes escenarios
+// TODO: Desarrollar mejor vesion en py del f1
+// TODO: Limpiar codigo
+// TODO: Optimizar el codigo
 
-__global__ void F1_Score(float *y_true, float *y_pred, float *f1_score, int nx, int ny, unsigned int *aux)
+__global__ void F1_Score(float *y_true, float *y_pred, float *f1_score, int nx, int ny, int *aux)
 {
     unsigned int ix = threadIdx.x + blockIdx.x * blockDim.x;
     unsigned int iy = threadIdx.y + blockIdx.y * blockDim.y;
@@ -18,7 +18,7 @@ __global__ void F1_Score(float *y_true, float *y_pred, float *f1_score, int nx, 
     unsigned int tercera = cesar + 2;
     if (tid < nx * ny && ix < nx && iy < ny)
     {
-        // printf("ix%i iy%i tid %i cesar %i, segunda %i, tercera %i\n", ix, iy, tid, cesar, segunda, tercera);
+        printf("ix%i iy%i tid %i cesar %i, segunda %i, tercera %i\n", ix, iy, tid, cesar, segunda, tercera);
         if (y_pred[tid] == 1 && y_true[ix] == 1) // TP A
         {
             atomicAdd(&aux[cesar], 1);
@@ -36,13 +36,16 @@ __global__ void F1_Score(float *y_true, float *y_pred, float *f1_score, int nx, 
             unsigned int a = aux[cesar];
             unsigned int b = aux[segunda];
             unsigned int c = aux[tercera];
-            unsigned int x = (a + 0.5 * (b + c));
-            if (x == 0){
-                f1_score[iy] = -1;
+            float x = (float)(a + 0.5 * (b + c));
+            if (x == 0)
+            {
+                f1_score[iy] = (float)-1;
                 printf("Warning: Zero divition in f1_score[%i], value was set to -1.\n", iy);
-            }                
+            }
             else
-                f1_score[iy] = a / x;
+                f1_score[iy] = (float)(a / x);
+
+            printf("f1_score %f tid %i, a %i, b %i, c %i\n", f1_score[iy], tid, a, b, c);
         }
     }
 }
@@ -99,7 +102,7 @@ int main()
     int nBytesPredictions = nm * sizeof(float);
     int nBytesTargetValues = nx * sizeof(float);
     int nBytesAccuracy = ny * sizeof(float);
-    int nBytesAux = ny * 3 * sizeof(unsigned int);
+    int nBytesAux = ny * 3 * sizeof(int);
 
     // Host memory allocation
     float *predictions, *targetValues, *h_accuracy;
@@ -111,31 +114,31 @@ int main()
 
     // Device memory allocation
     float *d_accuracy;
-    unsigned int *d_aux;
+    int *d_aux;
     cudaMalloc((void **)&d_accuracy, nBytesAccuracy);
     cudaMalloc((void **)&d_aux, nBytesAux);
 
     // Host memory initialization
-    // y_true = [1, 0, 1, 1, 0, 1, 0, 1]
-    // y_pred = [1, 0, 1, 0, 1, 1, 0, 1]
+    // y_true = [1,0,0,0,1,1,1,0]
+    // y_pred = [1,1,1,0,1,0,1,1]
     predictions[0] = 1;
-    predictions[1] = 0;
-    predictions[2] = 0;
+    predictions[1] = 1;
+    predictions[2] = 1;
     predictions[3] = 0;
-    predictions[4] = 0;
+    predictions[4] = 1;
     predictions[5] = 0;
     predictions[6] = 0;
-    predictions[7] = 0;
+    predictions[7] = 1;
     // FillingMatrices(predictions, 1, ny, nx);
     FillingMatrices(h_aux, 0, ny, 3);
     // Predictions(targetValues, nx, 1);
-    targetValues[0] = 0;
-    targetValues[1] = 0;
+    targetValues[0] = 1;
+    targetValues[1] = 1;
     targetValues[2] = 1;
     targetValues[3] = 0;
-    targetValues[4] = 0;
+    targetValues[4] = 1;
     targetValues[5] = 0;
-    targetValues[6] = 0;
+    targetValues[6] = 1;
     targetValues[7] = 1;
     VectorVacio(h_accuracy, nx, 0);
 
