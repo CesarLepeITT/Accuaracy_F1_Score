@@ -24,7 +24,7 @@ __global__ void f1_score(float *y_true, float *y_pred, float *accuaracy, int nx,
     unsigned int posx = tid - (iy * nx);
     if (tid < nx * ny && ix < nx && iy < ny)
     {
-        printf("ix%i iy%i tid %i\n", ix, iy, tid);
+        //printf("ix%i iy%i tid %i\n", ix, iy, tid);
         if (y_pred[tid] == y_true[posx])
         {
             float sum = 1 / (float)nx;
@@ -46,7 +46,7 @@ void Predictions(float *vector, int m, float num)
         if (i % 2 == 0)
             vector[i] = num;
         else
-            vector[i] = 0;
+            vector[i] = 1;
     }
 }
 void VectorVacio(float *vector, int m, float num)
@@ -72,8 +72,8 @@ void PrintVect(float *vect, int ny)
 int main()
 {
     // Set up dimensions
-    int ny = 2;
-    int nx = 2;
+    int ny = 4;
+    int nx = 4;
     int nm = ny * nx;
 
     // Memory size
