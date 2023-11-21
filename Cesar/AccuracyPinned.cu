@@ -1,6 +1,7 @@
 #include <cuda.h>
 #include <stdlib.h>
 #include <stdio.h>
+// TODO: Desarrollar una mejor version en python para compararlos bien
 // TODO: Documentar el codigo
 // TODO: Probar un problema real con el codigo
 // TODO: Optimizar rendimiento general
