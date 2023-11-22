@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-__global__ void kernel(float* mSemantica, float* targetValues, float* accuracyScore, int m){
+__global__ void kernel(float* mSemantica, float* targetValues, float* accuracyScore){
     if (mSemantica[((blockDim.y * blockIdx.y + threadIdx.y) * (gridDim.x * blockDim.x)) + (blockDim.x * blockIdx.x + threadIdx.x)] == targetValues[blockDim.x * blockIdx.x + threadIdx.x])
     {
         // printf("individuo: %i, thread y mSemantica[%i]: %f = target[%i]: %f\n", blockDim.y * blockIdx.y + threadIdx.y, ((blockDim.y * blockIdx.y + threadIdx.y) * (gridDim.x * blockDim.x)) + (blockDim.x * blockIdx.x + threadIdx.x), mSemantica[((blockDim.y * blockIdx.y + threadIdx.y) * (gridDim.x * blockDim.x)) + (blockDim.x * blockIdx.x + threadIdx.x)],blockDim.x * blockIdx.x +threadIdx.x, targetValues[blockDim.x * blockIdx.x + threadIdx.x]);
@@ -20,11 +20,11 @@ __global__ void leer(float* mSemantica, float* targetValues, float* accuracyScor
      
 
 }
-void Llenarvector(float* vector, int n, int m, int value){
+void llenarVector(float* vector, int n, int m, int value){
     for (int i = 0; i < m; i++)
         vector[i] = 1;
 }
-void Llenarmatriz(float* vector, int n, int m){
+void llenarMatriz(float* vector, int n, int m){
     for (int i = 0; i < n; i++){
         for (int e = 0; e < m; e++)
         {
@@ -70,8 +70,8 @@ int main(){
     mSemantica = (float*)malloc(n * m * sizeof(float));
     accuracyScore = (float*)malloc(n * sizeof(float));
 
-    Llenarmatriz(mSemantica, n, m);
-    Llenarvector(targetValues, 1, m, 1);
+    llenarMatriz(mSemantica, n, m);
+    llenarVector(targetValues, 1, m, 1);
 
     cudaMalloc((void**)&targetValues_d, m * sizeof(float));
     cudaMalloc((void**)&mSemantica_d, n * m * sizeof(float));
