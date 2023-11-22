@@ -7,55 +7,69 @@
 // TODO: Limpiar codigo
 // TODO: Optimizar el codigo
 
-__global__ void F1_Score(float *y_true, float *y_pred, float *f1_score, int nx, int ny, int *aux)
+__global__ void f1_score(float *y_pred, float *y_true, float *f1_scores, int nx, int ny, unsigned int *aux)
 {
+    // Calculate global coordinates of the thread in the 2D block
     unsigned int ix = threadIdx.x + blockIdx.x * blockDim.x;
     unsigned int iy = threadIdx.y + blockIdx.y * blockDim.y;
+
+    // Calculate global index of the y_pred matrix
     unsigned int tid = iy * nx + ix;
 
-    unsigned int cesar = iy * 2;
-    unsigned int segunda = cesar + 1;
-    unsigned int tercera = cesar + 2;
+    // Calculate positions in the auxiliary array for TP, FN, and FP
+    unsigned int pos_sum_TP = iy * 3;
+    unsigned int pos_sum_FN = pos_sum_TP + 1;
+    unsigned int pos_sum_FP = pos_sum_TP + 2;
+
+    // Check if the thread is within the data bounds
     if (tid < nx * ny && ix < nx && iy < ny)
     {
-        printf("ix%i iy%i tid %i cesar %i, segunda %i, tercera %i\n", ix, iy, tid, cesar, segunda, tercera);
-        if (y_pred[tid] == 1 && y_true[ix] == 1) // TP A
+        // Check conditions for TP, FN, and FP, and update partial sums atomically
+        if (y_pred[tid] == 1 && y_true[ix] == 1) // TP
         {
-            atomicAdd(&aux[cesar], 1);
+            atomicAdd(&aux[pos_sum_TP], (float)1.0);
         }
-        if (y_pred[tid] == 0 && y_true[ix] == 1) // FN B
+        if (y_pred[tid] == 0 && y_true[ix] == 1) // FN
         {
-            atomicAdd(&aux[segunda], 1);
+            atomicAdd(&aux[pos_sum_FN], (float)1.0);
         }
-        if (y_pred[tid] == 1 && y_true[ix] == 0) // FP C
+        if (y_pred[tid] == 1 && y_true[ix] == 0) // FP
         {
-            atomicAdd(&aux[tercera], 1);
+            atomicAdd(&aux[pos_sum_FP], (float)1.0);
         }
-        if (tid == nx - 1)
+        //  Check if it is the last thread in the row
+        if (ix == nx - 1)
         {
-            unsigned int a = aux[cesar];
-            unsigned int b = aux[segunda];
-            unsigned int c = aux[tercera];
-            float x = (float)(a + 0.5 * (b + c));
-            if (x == 0)
+            // Retrieve partial sums
+            unsigned int TP = aux[pos_sum_TP];
+            unsigned int FN = aux[pos_sum_FN];
+            unsigned int FP = aux[pos_sum_FP];
+
+            // Calculate the F1 score and store it in the f1_scores array
+            float f1_denominator = (float)(TP + 0.5 * (FN + FP));
+            if (f1_denominator == 0)
             {
-                f1_score[iy] = (float)-1;
-                printf("Warning: Zero divition in f1_score[%i], value was set to -1.\n", iy);
+                f1_scores[iy] = (float)-1; // Avoid division by zero
             }
             else
-                f1_score[iy] = (float)(a / x);
+                f1_scores[iy] = (float)(TP / f1_denominator);
 
-            printf("f1_score %f tid %i, a %i, b %i, c %i\n", f1_score[iy], tid, a, b, c);
         }
     }
 }
 void FillingMatrices(float *matrix, float num, int n, int m)
 {
-    for (int i = 0; i < n; i++)
-        for (int j = 0; j < m; j++)
-            matrix[i * m + j] = num;
+    for (int i = 0; i < n; ++i)
+    {
+        for (int j = 0; j < m; ++j)
+        {
+            // Calcula el índice correspondiente en el arreglo unidimensional
+            int index = i * m + j;
+            matrix[index] = 1.0; // Llena la matriz con el valor 1.0
+        }
+    }
 }
-void FillingMatrices(int *matrix, int num, int n, int m)
+void FillingMatrices(unsigned int *matrix, int num, int n, int m)
 {
     for (int i = 0; i < n; i++)
         for (int e = 0; e < m; e++)
@@ -65,10 +79,7 @@ void Predictions(float *vector, int m, float num)
 {
     for (int i = 0; i < m; i++)
     {
-        if (i % 2 == 0)
-            vector[i] = num;
-        else
-            vector[i] = 5;
+        vector[i] = num;
     }
 }
 void VectorVacio(float *vector, int m, float num)
@@ -90,56 +101,59 @@ void PrintVect(float *vect, int ny)
     }
     printf("]\n");
 }
+void CheckResults(float *matriz, int m)
+{
+    int aux = 0;
+
+        for (int j = 0; j < m; ++j)
+        {
+            // Calcula el índice correspondiente en el arreglo unidimensional
+            int index = j;
+            if (matriz[index] != 1) // Llena la matriz con el valor 1.0
+                aux++;
+        }
+    
+    if (aux == 0)
+        printf("TOdo bien\n");
+    else
+        printf("Algo salio mal %i\n", aux);
+}
 
 int main()
 {
     // Set up dimensions
-    int ny = 1;
-    int nx = 8;
+    int ny = 2048;
+    int nx = 2048;
     int nm = ny * nx;
 
     // Memory size
     int nBytesPredictions = nm * sizeof(float);
     int nBytesTargetValues = nx * sizeof(float);
     int nBytesAccuracy = ny * sizeof(float);
-    int nBytesAux = ny * 3 * sizeof(int);
+    int nBytesAux = ny * 3 * sizeof(unsigned int);
 
     // Host memory allocation
     float *predictions, *targetValues, *h_accuracy;
-    int *h_aux;
+    unsigned int *h_aux;
     h_accuracy = (float *)malloc(nBytesAccuracy);
-    h_aux = (int *)malloc(nBytesAux);
-    cudaMallocHost((void **)&predictions, nBytesPredictions);
-    cudaMallocHost((void **)&targetValues, nBytesTargetValues);
+    h_aux = (unsigned int *)malloc(nBytesAux);
+    cudaMallocManaged((void **)&predictions, nBytesPredictions);
+    cudaMallocManaged((void **)&targetValues, nBytesTargetValues);
 
     // Device memory allocation
     float *d_accuracy;
-    int *d_aux;
+    unsigned int *d_aux;
     cudaMalloc((void **)&d_accuracy, nBytesAccuracy);
     cudaMalloc((void **)&d_aux, nBytesAux);
 
     // Host memory initialization
-    // y_true = [1,0,0,0,1,1,1,0]
-    // y_pred = [1,1,1,0,1,0,1,1]
-    predictions[0] = 1;
-    predictions[1] = 1;
-    predictions[2] = 1;
-    predictions[3] = 0;
-    predictions[4] = 1;
-    predictions[5] = 0;
-    predictions[6] = 0;
-    predictions[7] = 1;
-    // FillingMatrices(predictions, 1, ny, nx);
+
+    FillingMatrices(predictions, 1, ny, nx);
+
     FillingMatrices(h_aux, 0, ny, 3);
-    // Predictions(targetValues, nx, 1);
-    targetValues[0] = 1;
-    targetValues[1] = 1;
-    targetValues[2] = 1;
-    targetValues[3] = 0;
-    targetValues[4] = 1;
-    targetValues[5] = 0;
-    targetValues[6] = 1;
-    targetValues[7] = 1;
+
+    Predictions(targetValues, nx, 1);
+
     VectorVacio(h_accuracy, nx, 0);
 
     // Memory transfer host to device
@@ -153,13 +167,14 @@ int main()
     dim3 block(dimx, dimy);
     dim3 grid((nx + block.x - 1) / block.x, (ny + block.y - 1) / block.y);
 
-    F1_Score<<<grid, block>>>(targetValues, predictions, d_accuracy, nx, ny, d_aux);
+    f1_score<<<grid, block>>>(predictions, targetValues, d_accuracy, nx, ny, d_aux);
     cudaDeviceSynchronize();
 
     // Memory transfer device to host
     cudaMemcpy(h_accuracy, d_accuracy, nBytesAccuracy, cudaMemcpyDeviceToHost);
 
-    PrintVect(h_accuracy, ny);
+    // PrintVect(h_accuracy, ny);
+    CheckResults(h_accuracy, ny);
 
     // Reset device
     cudaDeviceReset();

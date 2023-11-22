@@ -16,19 +16,18 @@
 // float *accuracy: Array de ny elementos que representa el accuracy de ny individuos
 // int nx: nx elementos
 // int ny: ny elementos
-__global__ void f1_score(float *y_true, float *y_pred, float *accuaracy, int nx, int ny)
+__global__ void accuracyScore(float *y_true, float *y_pred, float *accuracies, int nx, int ny)
 {
     unsigned int ix = threadIdx.x + blockIdx.x * blockDim.x;
     unsigned int iy = threadIdx.y + blockIdx.y * blockDim.y;
     unsigned int tid = iy * nx + ix;
-    unsigned int posx = tid - (iy * nx);
+
     if (tid < nx * ny && ix < nx && iy < ny)
     {
-        //printf("ix%i iy%i tid %i\n", ix, iy, tid);
-        if (y_pred[tid] == y_true[posx])
+        if (y_pred[tid] == y_true[ix])
         {
             float sum = 1 / (float)nx;
-            atomicAdd(&accuaracy[iy], sum);
+            atomicAdd(&accuracies[iy], sum);
         }
     }
 }
@@ -72,8 +71,8 @@ void PrintVect(float *vect, int ny)
 int main()
 {
     // Set up dimensions
-    int ny = 4;
-    int nx = 4;
+    int ny = 2;
+    int nx = 2;
     int nm = ny * nx;
 
     // Memory size
@@ -93,8 +92,14 @@ int main()
     cudaMalloc((void **)&d_accuracy, nBytesAccuracy);
 
     // Host memory initialization
-    FillingMatrices(predictions, ny, nx);
-    Predictions(targetValues, nx, 1);
+    predictions[0] = 1;
+    predictions[1] = 1;
+    predictions[2] = 1;
+    predictions[3] = 1;
+
+    targetValues[0] = 1;
+    targetValues[1] = 0;
+
     VectorVacio(h_accuracy, ny, 0);
 
     // Memory transfer host to device
@@ -107,7 +112,7 @@ int main()
     dim3 block(dimx, dimy);
     dim3 grid((nx + block.x - 1) / block.x, (ny + block.y - 1) / block.y);
 
-    f1_score<<<grid, block>>>(targetValues, predictions, d_accuracy, nx, ny);
+    accuracyScore<<<grid, block>>>(targetValues, predictions, d_accuracy, nx, ny);
     cudaDeviceSynchronize();
 
     // Memory transfer device to host
