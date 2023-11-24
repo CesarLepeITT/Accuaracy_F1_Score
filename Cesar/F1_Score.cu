@@ -168,12 +168,12 @@ int main()
     dim3 grid((nx + block.x - 1) / block.x, (ny + block.y - 1) / block.y);
 
     f1_score<<<grid, block>>>(predictions, targetValues, d_accuracy, nx, ny, d_aux);
-    cudaDeviceSynchronize();
-
+   // cudaDeviceSynchronize();
+    cudaFree(d_aux);
     // Memory transfer device to host
     cudaMemcpy(h_accuracy, d_accuracy, nBytesAccuracy, cudaMemcpyDeviceToHost);
 
-    // PrintVect(h_accuracy, ny);
+    PrintVect(h_accuracy, ny);
     CheckResults(h_accuracy, ny);
 
     // Reset device

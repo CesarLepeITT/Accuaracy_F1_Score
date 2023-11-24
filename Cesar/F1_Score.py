@@ -6,7 +6,7 @@ def rellenar_matriz(ny, nx, valor):
     return matriz
 
 def rellenar_matriz_rand(ny, nx):
-    matriz = np.random.randint(2, size=(ny, nx))
+    matriz = np.random.rand(ny, nx)
     return matriz
 
 def rellenar_vector(nx, valor):
@@ -14,7 +14,7 @@ def rellenar_vector(nx, valor):
     return vector
 
 def rellenar_vector_rand(nx):
-    vector = np.random.randint(2, size=nx)
+    vector = np.random.rand(nx)
     return vector
 
 def calcular_f1_score(y_pred, y_true):
@@ -23,7 +23,7 @@ def calcular_f1_score(y_pred, y_true):
 
     # Calcular el accuracy para cada fila
     for i in range(len(y_pred)):
-        accuracy = f1_score(y_true, y_pred[i])
+        accuracy = f1_score(y_true, y_pred[i], average='micro')
         accuracies.append(accuracy)
 
     return np.array(accuracies)
