@@ -79,7 +79,7 @@ int main()
 {
     // Set up dimensions
     int ny = 1;
-    int nx = 4;
+    int nx = 8;
     int nm = ny * nx;
 
     // Memory size
@@ -91,23 +91,31 @@ int main()
     float *predictions, *targetValues, *h_accuracy;
 
     h_accuracy = (float *)malloc(nBytesAccuracy);
-    cudaMallocHost((void **)&predictions, nBytesPredictions);
-    cudaMallocHost((void **)&targetValues, nBytesTargetValues);
+    cudaMallocManaged((void **)&predictions, nBytesPredictions);
+    cudaMallocManaged((void **)&targetValues, nBytesTargetValues);
 
     // Device memory allocation
     float *d_accuracy;
     cudaMalloc((void **)&d_accuracy, nBytesAccuracy);
 
     // Host memory initialization
-    predictions[0] = 1;
+    predictions[0] = 3;
     predictions[1] = 1;
-    predictions[2] = 1;
+    predictions[2] = 2;
     predictions[3] = 1;
+    predictions[4] = 2;
+    predictions[5] = 3;
+    predictions[6] = 2;
+    predictions[7] = 1;
 
     targetValues[0] = 1;
-    targetValues[1] = 1;
-    targetValues[2] = 1;
-    targetValues[3] = 1;
+    targetValues[1] = 3;
+    targetValues[2] = 2;
+    targetValues[3] = 3;
+    targetValues[4] = 1;
+    targetValues[5] = 2;
+    targetValues[6] = 3;
+    targetValues[7] = 1;
 
     VectorVacio(h_accuracy, ny, 0);
 
@@ -127,6 +135,8 @@ int main()
     // Memory transfer device to host
     cudaMemcpy(h_accuracy, d_accuracy, nBytesAccuracy, cudaMemcpyDeviceToHost);
 
+    PrintVect(predictions, nx);
+    PrintVect(targetValues, nx);
     PrintVect(h_accuracy, ny);
 
     // Reset device

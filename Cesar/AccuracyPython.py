@@ -29,18 +29,19 @@ def calcular_accuracy_por_fila(matriz_predicciones, vector_etiquetas):
     return np.array(accuracies)
 
 # Set up dimensions
-ny = 2
-nx = 2
+ny = 1
+nx = 8
 
 # Inicializar memoria
-y_true = rellenar_vector_rand(nx)
-y_pred = rellenar_matriz_rand(ny, nx)
+
+y_trues = [1,3,2,3,1,2,3,1] #rellenar_vector_rand(nx)
+y_preds = [3,1,2,1,2,3,2,1]#rellenar_matriz_rand(ny, nx)
 
 # Calcular el accuracy
-accuracies = calcular_accuracy_por_fila(y_pred, y_true)
+accuracies = accuracy_score(y_trues,y_preds, normalize= True)#calcular_accuracy_por_fila(y_pred, y_true)
 
 # Imprimir resultados
-print("y_pred: \n", y_pred)
-print("y_true: \n", y_true)
+print("y_pred: \n", y_preds)
+print("y_true: \n", y_trues)
 print("Accuracies: \n", accuracies)
 

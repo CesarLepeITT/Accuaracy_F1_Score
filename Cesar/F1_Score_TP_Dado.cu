@@ -136,8 +136,8 @@ void CheckResults(float *matriz, int m)
 int main()
 {
     // Set up dimensions
-    int ny = 2;
-    int nx = 2;
+    int ny = 1;
+    int nx = 4;
     int nm = ny * nx;
 
     // Memory size
@@ -165,18 +165,19 @@ int main()
     // Host memory initialization
 
     // FillingMatrices(predictions, 1, ny, nx);
-    targetValues[0] = 0;
-    targetValues[1] = 0;
-
+    targetValues[0] = 1;
+    targetValues[1] = 1;
+    targetValues[2] = 3;
+    targetValues[3] = 2;
 
     FillingMatrices(h_aux, 0, ny, 2);
 
     // Predictions(targetValues, nx, 1);
 
-    predictions[0] = 0;
-    predictions[1] = 0;
-    predictions[2] = 2;
-    predictions[3] = 2;
+    predictions[0] = 1;
+    predictions[1] = 2;
+    predictions[2] = 3;
+    predictions[3] = 1;
 
     VectorVacio(h_f1Scores, nx, 0);
 
