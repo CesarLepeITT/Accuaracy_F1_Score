@@ -27,11 +27,18 @@ __global__ void ConfusionF1(float *yPred, float *yTrue, int nx, int ny, int *TP,
 
 __global__ void F1Score(float *f1Score, int ny, int *TP, int *FP, int *FN)
 {
-    // Implementar la división con
-    // __global__ fdividef(float x, float y)
-    // para evitar división sobre 0 y 
-    // hacer pruebas unitarias para revisar que 
-    // tabaje correctamente.
+/* 
+    Implementar la división con
+    __global__ fdividef(float x, float y)
+    para evitar división sobre 0 y 
+    hacer pruebas unitarias para revisar que 
+    tabaje correctamente.
+    tembien checar si es micro macro o weighted 
+    hacer un f1 para cada caso
+*/
+
+
+
     unsigned int ix = threadIdx.x + blockIdx.x * blockDim.x;
     unsigned int iy = threadIdx.y + blockIdx.y * blockDim.y;
     unsigned int tid = iy * ny + ix;
