@@ -35,6 +35,12 @@ __global__ void F1Score(float *f1Score, int ny, int *TP, int *FP, int *FN)
     tabaje correctamente.
     tembien checar si es micro macro o weighted 
     hacer un f1 para cada caso
+
+    tambien se puede probar con la ecuacion
+
+    f1 = 2 TP
+            2TP + FP + Fn
+
 */
 
 
