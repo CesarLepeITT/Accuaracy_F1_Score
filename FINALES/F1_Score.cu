@@ -25,56 +25,26 @@ __global__ void ConfusionF1(float *yPred, float *yTrue, int nx, int ny, int *TP,
     }
 }
 
-__global__ void F1Score(float *f1Score, int ny, int *TP, int *FP, int *FN)
+__global__ void F1ScoreMicro(float *f1Score, int ny, int *TP, int *FP, int *FN)
 {
-/* 
-    Implementar la división con
-    __global__ fdividef(float x, float y)
-    para evitar división sobre 0 y 
-    hacer pruebas unitarias para revisar que 
-    tabaje correctamente.
-    tembien checar si es micro macro o weighted 
-    hacer un f1 para cada caso
-
-    tambien se puede probar con la ecuacion
-
-    f1 = 2 TP
-            2TP + FP + Fn
-
-*/
-
-
-
+    /* Micro F1 Score */
     unsigned int ix = threadIdx.x + blockIdx.x * blockDim.x;
     unsigned int iy = threadIdx.y + blockIdx.y * blockDim.y;
     unsigned int tid = iy * ny + ix;
 
-    if (tid < ny)
+    if (tid < ny && ix < ny)
     {
-         float precision;
-        float recall;
-        
-        precision = TP[ix];
-        precision = precision * 1 / (TP[ix] + FP[ix]);
+        float y = 2 * TP[ix] + FP[ix] + FN[ix];
 
-        recall = TP[ix];
-        recall = recall * 1 / (TP[ix] + FN[ix]);
-
-        if(precision && recall){
-            f1Score[ix] = 2 * precision * recall;
-            f1Score[ix] = f1Score[ix] * 1 / (precision + recall);
-        }
-        else
-            f1Score = 0;
-        printf("%f \n", precision);
+        y > 0 ? f1Score[ix] = fdividef(float(2 * TP[ix]), y) : f1Score[ix] = 0;
     }
 }
 
 int main()
 {
     // Set up size
-    int nx = 3;
-    int ny = 3;
+    int nx = 8;
+    int ny = 1;
     int nm = nx * ny;
 
     // Size of memory
@@ -97,8 +67,8 @@ int main()
     cudaMallocManaged((void **)&FN, nBytesTPFPNP);
 
     // Host mem initialization
-    FillingMatrices(semantica, nx, ny, 1);
-    FillingVector(yTrue, nx, 1);
+    FillingMatrices(semantica, nx, ny, 2);
+    FillingVector(yTrue, nx, 2);
     FillingVector(f1Score, ny, 0);
     FillingVector(TP, ny, 0);
     FillingVector(FP, ny, 0);
@@ -119,7 +89,7 @@ int main()
     ConfusionF1<<<grid, block>>>(semantica, yTrue, nx, ny, TP, FP, FN);
     cudaDeviceSynchronize();
 
-    F1Score<<<grid, block>>>(f1Score, ny, TP, FP, FN);
+    F1ScoreMicro<<<grid, block>>>(f1Score, ny, TP, FP, FN);
     cudaDeviceSynchronize();
 
     printf("TP\n");
@@ -129,6 +99,7 @@ int main()
     printf("fn\n");
     imprimirVector(ny, FN);
     printf("f1\n");
+    log10
 
     imprimirVector(ny, f1Score);
     cudaDeviceReset();
