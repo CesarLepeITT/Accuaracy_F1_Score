@@ -14,8 +14,8 @@
 * \param    float *accuracies: array that stores the calculated accuracies
 * \param    int nx: number of columns in y_pred and y_true
 * \param    int ny: number of rows in y_pred
-* \date     /////
-* \author   /////
+* \date     21/sept/2024
+* \author   César Lepe Garcia
 * \file     GsgpCuda.cpp
 */
 
