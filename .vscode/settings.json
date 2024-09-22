@@ -9,6 +9,7 @@
         "iterator": "cpp",
         "vector": "cpp",
         "__config": "cpp",
-        "__tuple": "cpp"
+        "__tuple": "cpp",
+        "cmath": "cpp"
     }
 }
