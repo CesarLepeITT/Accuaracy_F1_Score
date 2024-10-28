@@ -3,38 +3,25 @@
 #include <stdio.h>
 #include <iostream>
 using namespace std;
+
 /**
- * @brief Aplica una función de activación sigmoide sobre una matriz de valores en paralelo utilizando la GPU.
+ * @brief Aplica la función de activación sigmoide sobre una matriz bidimensional.
  *
- * Esta función es una implementación de la función de activación sigmoide que se ejecuta en un kernel de CUDA.
- * Se aplica la operación a cada elemento de la matriz bidimensional `semantica`, cuyo tamaño es `nx` por `ny`.
- * La fórmula utilizada para cada elemento es:
+ * Esta función de CUDA utiliza múltiples hilos para aplicar la función de activación sigmoide
+ * a cada elemento de una matriz de tamaño `nx` x `ny`. La sigmoide se define como:
+ * \f[
+ *     \text{sigmoid}(x) = \frac{1}{1 + e^{-\alpha x}}
+ * \f]
  *
- *     semantica[tid] = 1 / (1 + exp(-alpha * semantica[tid]))
+ * @param semantic Puntero a un arreglo unidimensional que contiene los valores de la matriz.
+ * @param alpha Parámetro de ajuste para la función sigmoide. Controla la pendiente de la curva sigmoide.
+ * @param nx Número de columnas de la matriz.
+ * @param ny Número de filas de la matriz.
  *
- * Donde `alpha` es un parámetro de ajuste de la función sigmoide.
- *
- * @param semantica Un puntero a la memoria de la GPU que contiene los valores de entrada y donde se almacenarán
- *                  los resultados después de aplicar la función de activación sigmoide. Debe ser un arreglo
- *                  bidimensional aplanado de tamaño `nx * ny`.
- * @param alpha     Un valor flotante que controla la "pendiente" de la función sigmoide.
- * @param nx        El número de columnas en la matriz `semantica`.
- * @param ny        El número de filas en la matriz `semantica`.
- *
- * @details
- * La función utiliza el paralelismo de CUDA para ejecutar múltiples hilos, donde cada hilo calcula un índice
- * basado en su identificación de bloque (`blockIdx`) e hilo (`threadIdx`). Cada hilo procesa un elemento en
- * la matriz `semantica`, siempre y cuando el índice calculado esté dentro de los límites de la matriz.
- *
- * El operador `fdividef` se usa para realizar una división en punto flotante de manera eficiente en la GPU.
- *
- * @note Es importante asegurarse de que el número total de hilos lanzados sea suficiente para cubrir el
- *       tamaño completo de la matriz `semantica` (nx * ny).
- *
- * @note La función sigmoide aplicada es una forma comúnmente utilizada en redes neuronales para normalizar
- *       las salidas en un rango de (0, 1).
+ * @author César Lepe García
+ * @date 25 de octubre de 2024
  */
-__global__ void ActivationFunction(float *semantica, float alpha, int nx, int ny)
+__global__ void ActivationFunction(float *semantic, float alpha, int nx, int ny)
 {
     unsigned int ix = threadIdx.x + blockIdx.x * blockDim.x;
     unsigned int iy = threadIdx.y + blockIdx.y * blockDim.y;
@@ -44,7 +31,7 @@ __global__ void ActivationFunction(float *semantica, float alpha, int nx, int ny
     if (tid < nx * ny && ix < nx && iy < ny)
     {
         // Aplica la función de activación sigmoide sobre el valor actual
-        semantica[tid] = fdividef(1, 1 + exp(-1 * alpha * semantica[tid]));
+        semantic[tid] = fdividef(1, 1 + exp(-1 * alpha * semantic[tid]));
     }
 }
 
@@ -72,7 +59,13 @@ int main()
     scanf("%f", &y_pred[0]);
 
     // Kernell call
-    ActivationFunction<<<1, 1>>>(y_pred, alpha, nx, ny);
+    int dimx = 32;
+    int dimy = 32;
+
+    dim3 block(dimx, dimy);
+    dim3 grid((nx + block.x - 1) / block.x, (ny + block.y - 1) / block.y);
+
+    ActivationFunction<<<grid, block>>>(y_pred, alpha, nx, ny);
     cudaDeviceSynchronize();
 
     // Device reset

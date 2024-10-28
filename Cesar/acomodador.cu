@@ -2,18 +2,33 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-__global__ void acomodar(int *y_true, int valor, int nx)
+
+/**
+ * @brief Converts an integer array into binary labels based on a reference value.
+ *
+ * This CUDA kernel processes a 1D array of integers (`outputArray`) and sets each 
+ * element to 1 if it matches the specified `referenceValue`, or to 0 otherwise. 
+ * It is designed to operate in parallel across multiple threads in a CUDA grid.
+ *
+ * @param outputArray Pointer to a 1D array of integers that will be modified to contain binary labels.
+ * @param referenceValue The value against which each element in the array is compared.
+ * @param arraySize The total number of elements in the array.
+ *
+ * @author César Lepe García
+ * @date October 25, 2024
+ */
+__global__ void SetBinaryLabels(int *outputArray, int referenceValue, int arraySize)
 {
     unsigned int ix = threadIdx.x + blockIdx.x * blockDim.x;
     unsigned int iy = threadIdx.y + blockIdx.y * blockDim.y;
-    unsigned int tid = iy * nx + ix;
+    unsigned int tid = iy * arraySize + ix;
 
-    if (tid < nx  && ix < nx)
+    if (tid < arraySize  && ix < arraySize)
     {
-        if (y_true[ix] == valor)
-            y_true[ix] = 1;
+        if (outputArray[ix] == referenceValue)
+            outputArray[ix] = 1;
         else
-            y_true[ix] = 0;
+            outputArray[ix] = 0;
     }
 }
 
@@ -76,11 +91,17 @@ int main()
 
     dim3 block(dimx, dimy);
     dim3 grid((nx + block.x - 1) / block.x, (1 + block.y - 1) / block.y);
-    acomodar<<<grid, block>>>(y_true, valor1, nx);
+    SetBinaryLabels<<<grid, block>>>(y_true, valor1, nx);
     cudaDeviceSynchronize();
 
     // Check
     printf("Y true procesada, el valor seleccionado es %i \n", valor1);
+
+    int * copia;
+    cudaMallocManaged((void**)&copia, nBytesVect);
+    cudaMemcpy(copia, y_true, nBytesVect, cudaMemcpyDeviceToDevice);
+    imprimitVector(copia, nx);
+
     imprimitVector(y_true, nx);
 
     // Device reset
